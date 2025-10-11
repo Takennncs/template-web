@@ -8,13 +8,16 @@ function generateUID() {
 
 function registerUser($name, $email, $password) {
     global $db;
+
     $stmt = $db->prepare("SELECT * FROM users WHERE email=?");
     $stmt->execute([$email]);
     if ($stmt->fetch()) return false;
 
     $uid = generateUID();
-    $stmt = $db->prepare("INSERT INTO users (uid, name, email, password, is_admin) VALUES (?,?,?,?,0)");
+
+    $stmt = $db->prepare("INSERT INTO users (uid, name, email, password, is_admin, verify) VALUES (?,?,?,?,0,0)");
     $stmt->execute([$uid, $name, $email, password_hash($password, PASSWORD_DEFAULT)]);
+
     return true;
 }
 
@@ -23,7 +26,7 @@ function loginUser($email, $password) {
 
     session_unset();
 
-    $stmt = $db->prepare("SELECT uid, name, email, role, is_admin, password FROM users WHERE email=?");
+    $stmt = $db->prepare("SELECT uid, name, email, role, is_admin, password, verify FROM users WHERE email=?");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
@@ -32,8 +35,9 @@ function loginUser($email, $password) {
         $_SESSION['user_name'] = $user['name'];
         $_SESSION['user_role'] = $user['role'] ?? 'Mängija';
         $_SESSION['is_admin']  = (int)($user['is_admin'] ?? 0);
+        $_SESSION['verify']    = (int)($user['verify'] ?? 0);
 
-        error_log("LOGIN OK: ".$_SESSION['user_name']." (is_admin=".$_SESSION['is_admin'].")");
+        error_log("LOGIN OK: ".$_SESSION['user_name']." (verify=".$_SESSION['verify'].", is_admin=".$_SESSION['is_admin'].")");
 
         return true;
     } else {
